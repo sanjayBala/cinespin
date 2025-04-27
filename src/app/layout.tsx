@@ -17,7 +17,20 @@ export const metadata: Metadata = {
   title: "CineSpin - Your Movie Finder",
   description: "Travel back in time and discover your next favorite movie with CineSpin",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      },
+      {
+        url: '/film-reel.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: {
+      url: '/film-reel.svg',
+      type: 'image/svg+xml',
+    },
   },
 };
 

@@ -2,7 +2,7 @@
 
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-success?style=for-the-badge&logo=vercel&logoColor=white)](https://cinespin.vercel.app)
 
-[![GitHub Actions Tests](https://github.com/sanjayBala/cinespin/actions/workflows/test.yml/badge.svg)](https://github.com/sanjaybalaji/cinespin/actions/workflows/test.yml)
+[![GitHub Actions Tests](https://github.com/sanjayBala/cinespin/actions/workflows/test.yml/badge.svg)](https://github.com/sanjayBala/cinespin/actions/workflows/test.yml)
 
 **Tired of endless scrolling? CineSpin helps you discover your next favorite movie or TV show with a fun, retro twist!**
 
@@ -26,7 +26,7 @@ Want to run CineSpin locally? Follow these steps:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/sanjaybalaji/cinespin.git
+    git clone https://github.com/sanjayBala/cinespin.git
     cd cinespin
     ```
 
@@ -90,7 +90,7 @@ This project is automatically deployed using Vercel upon pushes to the `main` br
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/sanjaybalaji/cinespin/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/sanjayBala/cinespin/issues).
 
 ## 📄 License
 

@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import logger from './logger';
 
 // Get TMDB API key from environment variable
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
@@ -56,17 +57,64 @@ const tmdbClient = axios.create({
   },
   headers: {
     'Accept': 'application/json'
-  }
+  },
+  // Add timeout to prevent hanging requests
+  timeout: 10000, // 10 seconds
 });
+
+// Function to implement retry logic
+const retryAxiosRequest = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+  try {
+    return await fn();
+  } catch (error) {
+    const err = error as AxiosError;
+    if (retries <= 0) {
+      throw error;
+    }
+    
+    // Enhanced retry logic to handle network errors like ECONNRESET more explicitly
+    if (
+      !err.response || 
+      (err.response.status >= 500 && err.response.status < 600) ||
+      err.code === 'ECONNRESET' ||
+      err.code === 'ETIMEDOUT' ||
+      err.code === 'ECONNABORTED' ||
+      err.message.includes('Network Error')
+    ) {
+      logger.warn(`Retrying TMDB API request after ${err.code || 'network error'}. Attempts left: ${retries}`, { 
+        error: err.message,
+        code: err.code,
+        status: err.response?.status,
+      });
+      
+      // Increased wait time before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Exponential backoff
+      return retryAxiosRequest(fn, retries - 1, delay * 2);
+    }
+    
+    throw error;
+  }
+};
 
 // Add error handling interceptor
 tmdbClient.interceptors.response.use(
   response => response,
   error => {
-    console.error('TMDB API Error:', error.message);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+      logger.error('TMDB API connection error:', {
+        error: error.message,
+        code: error.code
+      });
+    } else {
+      logger.error('TMDB API Error:', {
+        message: error.message,
+        response: error.response ? {
+          data: error.response.data,
+          status: error.response.status
+        } : 'No response'
+      });
     }
     throw error;
   }
@@ -79,41 +127,11 @@ export async function discoverMedia(
 ): Promise<{ media: MediaItem[]; totalResults: number; currentPage: number }> {
   const currentYear = new Date().getFullYear();
   const ITEMS_PER_PAGE = 20; // TMDb's fixed page size
-  const DESIRED_ITEM_COUNT = 150;
+  const DESIRED_ITEM_COUNT = 80; // Reduced from 100 to limit API pressure
   const PAGES_TO_FETCH = Math.ceil(DESIRED_ITEM_COUNT / ITEMS_PER_PAGE);
   
-  // First, get the total number of pages available
-  const initialResponse = await tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
-    params: {
-      with_genres: preferences.genres?.join(','),
-      [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.gte`]: 
-        preferences.yearStart ? `${preferences.yearStart}-01-01` : '1900-01-01',
-      [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.lte`]: 
-        preferences.yearEnd ? `${preferences.yearEnd}-12-31` : `${currentYear}-12-31`,
-      'vote_average.gte': preferences.minRating || 0,
-      'vote_average.lte': preferences.maxRating || 10,
-      'with_original_language': preferences.language,
-      'vote_count.gte': 100,
-      'popularity.gte': preferences.minPopularity || 0,
-      sort_by: 'popularity.desc',
-      include_adult: preferences.includeAdult || false,
-      page: 1
-    },
-  });
-
-  const totalAvailablePages = initialResponse.data.total_pages;
-  
-  let startPage = 1;
-  if (pageOffset) {
-    startPage = pageOffset;
-  } else if (totalAvailablePages > PAGES_TO_FETCH) {
-    startPage = Math.floor(Math.random() * (totalAvailablePages - PAGES_TO_FETCH + 1)) + 1;
-  }
-
-  const pagesToFetch = Math.min(PAGES_TO_FETCH, totalAvailablePages - startPage + 1);
-  const allItems: MediaItem[] = [];
-
-  const pagePromises = Array.from({ length: pagesToFetch }, (_, i) =>
+  // First, get the total number of pages available with retry logic
+  const initialResponse = await retryAxiosRequest(() => 
     tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
       params: {
         with_genres: preferences.genres?.join(','),
@@ -124,27 +142,85 @@ export async function discoverMedia(
         'vote_average.gte': preferences.minRating || 0,
         'vote_average.lte': preferences.maxRating || 10,
         'with_original_language': preferences.language,
-        'vote_count.gte': 100,
+        'vote_count.gte': 50, // Reduced from 100 to increase the pool of options
         'popularity.gte': preferences.minPopularity || 0,
         sort_by: 'popularity.desc',
         include_adult: preferences.includeAdult || false,
-        page: startPage + i
+        page: 1
       },
-    }).then(response => {
+    }),
+    5,  // Increased retries for initial request
+    1500 // Longer initial delay
+  );
+
+  const totalAvailablePages = initialResponse.data.total_pages;
+  
+  let startPage = 1;
+  if (pageOffset) {
+    startPage = pageOffset;
+  } else if (totalAvailablePages > PAGES_TO_FETCH) {
+    startPage = Math.floor(Math.random() * (totalAvailablePages - PAGES_TO_FETCH + 1)) + 1;
+  }
+
+  // Limit pages to fetch to reduce load
+  const pagesToFetch = Math.min(PAGES_TO_FETCH, totalAvailablePages - startPage + 1, 5);
+  const allItems: MediaItem[] = [];
+
+  // Start with initial response data
+  allItems.push(...initialResponse.data.results);
+
+  // Sequential fetching with limited concurrency
+  for (let i = 0; i < pagesToFetch - 1; i++) {
+    try {
+      const response = await retryAxiosRequest(() => 
+        tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
+          params: {
+            with_genres: preferences.genres?.join(','),
+            [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.gte`]: 
+              preferences.yearStart ? `${preferences.yearStart}-01-01` : '1900-01-01',
+            [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.lte`]: 
+              preferences.yearEnd ? `${preferences.yearEnd}-12-31` : `${currentYear}-12-31`,
+            'vote_average.gte': preferences.minRating || 0,
+            'vote_average.lte': preferences.maxRating || 10,
+            'with_original_language': preferences.language,
+            'vote_count.gte': 50,
+            'popularity.gte': preferences.minPopularity || 0,
+            sort_by: 'popularity.desc',
+            include_adult: preferences.includeAdult || false,
+            page: startPage + i + 1
+          },
+        }),
+        4,   // Increase retries for subsequent requests
+        1200  // Increased delay
+      );
+      
       allItems.push(...response.data.results);
+      
       if (onProgress) {
         onProgress({
-          currentPage: i + 1,
+          currentPage: i + 2,
           totalPages: pagesToFetch,
           totalMovies: initialResponse.data.total_results,
           moviesLoaded: allItems.length
         });
       }
-      return response;
-    })
-  );
+      
+      // Increased delay between requests to avoid overloading the API and reduce connection resets
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      // If we've got some items already, we can proceed despite the error
+      if (allItems.length > 0) {
+        logger.warn('Error fetching additional pages, but continuing with available results', { error });
+        break;
+      }
+      throw error;
+    }
+  }
 
-  await Promise.all(pagePromises);
+  // If we have at least one result, return it even if we couldn't fetch everything
+  if (allItems.length === 0) {
+    throw new Error('No movies found matching your criteria');
+  }
 
   // Shuffle the items array for better randomization
   for (let i = allItems.length - 1; i > 0; i--) {
@@ -160,22 +236,24 @@ export async function discoverMedia(
 }
 
 export async function getMovieDetails(movieId: number) {
-  const response = await tmdbClient.get(`/movie/${movieId}`, {
-    params: {
-      append_to_response: 'credits,recommendations',
-    },
-  });
-  return response.data;
+  return retryAxiosRequest(() => 
+    tmdbClient.get(`/movie/${movieId}`, {
+      params: {
+        append_to_response: 'credits,recommendations',
+      },
+    })
+  ).then(response => response.data);
 }
 
 export async function searchMovies(query: string): Promise<MediaItem[]> {
-  const response = await tmdbClient.get('/search/movie', {
-    params: {
-      query,
-      include_adult: false,
-    },
-  });
-  return response.data.results;
+  return retryAxiosRequest(() => 
+    tmdbClient.get('/search/movie', {
+      params: {
+        query,
+        include_adult: false,
+      },
+    })
+  ).then(response => response.data.results);
 }
 
 export function getImageUrl(path: string | null, size: 'original' | 'w500' = 'w500'): string {

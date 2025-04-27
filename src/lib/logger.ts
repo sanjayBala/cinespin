@@ -1,28 +1,42 @@
-import winston from 'winston';
+// Simple isomorphic logger for Next.js
+// Handles both client and server environments without requiring fs
 
-// Create different logger configurations for server and client
-const logger = typeof window === 'undefined' 
-  ? winston.createLogger({
-      level: process.env.LOG_LEVEL || 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      ),
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          ),
-        }),
-      ],
-    })
-  : {
-      info: (...args: unknown[]) => console.log(...args),
-      error: (...args: unknown[]) => console.error(...args),
-      warn: (...args: unknown[]) => console.warn(...args),
-      debug: (...args: unknown[]) => console.debug(...args),
-    };
+// Define log level interface
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+// Define logger interface
+export interface Logger {
+  debug(message: string, meta?: any): void;
+  info(message: string, meta?: any): void;
+  warn(message: string, meta?: any): void;
+  error(message: string, meta?: any): void;
+}
+
+// Helper to format meta objects for console logging
+const formatMeta = (meta?: any): string => {
+  if (!meta) return '';
+  try {
+    return typeof meta === 'object' ? ` ${JSON.stringify(meta)}` : ` ${meta}`;
+  } catch {
+    return ' [Object cannot be stringified]';
+  }
+};
+
+// Create an isomorphic logger that works in both environments
+const logger: Logger = {
+  debug(message, meta) {
+    console.debug(`[DEBUG] ${message}${formatMeta(meta)}`);
+  },
+  info(message, meta) {
+    console.info(`[INFO] ${message}${formatMeta(meta)}`);
+  },
+  warn(message, meta) {
+    console.warn(`[WARN] ${message}${formatMeta(meta)}`);
+  },
+  error(message, meta) {
+    console.error(`[ERROR] ${message}${formatMeta(meta)}`);
+  }
+};
 
 // Add request logging middleware (server-side only)
 export const requestLogger = (req: Request) => {
