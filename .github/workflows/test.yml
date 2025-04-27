@@ -33,27 +33,3 @@ jobs:
     
     - name: Run linting
       run: npm run lint
-
-  deployment-status:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Check Vercel deployment
-      run: |
-        response=$(curl -s -o /dev/null -w "%{http_code}" https://cinespin.vercel.app)
-        if [ $response -ne 200 ]; then
-          echo "Vercel deployment is not responding correctly (Status: $response)"
-          exit 1
-        fi
-        echo "Vercel deployment is healthy"
-    
-    - name: Check custom domain deployment
-      run: |
-        response=$(curl -s -o /dev/null -w "%{http_code}" https://cinespin.sanjaybalaji.dev)
-        if [ $response -ne 200 ]; then
-          echo "Custom domain deployment is not responding correctly (Status: $response)"
-          exit 1
-        fi
-        echo "Custom domain deployment is healthy" 

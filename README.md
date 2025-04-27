@@ -1,7 +1,8 @@
 # CineSpin 🎬
 
+[![GitHub Actions Tests](https://github.com/sanjayBala/cinespin/actions/workflows/test.yml/badge.svg)](https://github.com/sanjaybalaji/cinespin/actions/workflows/test.yml)
+
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-success?style=for-the-badge&logo=vercel&logoColor=white)](https://cinespin.vercel.app)
-[![GitHub Actions Tests](https://github.com/sanjaybalaji/cinespin/actions/workflows/test.yml/badge.svg)](https://github.com/sanjaybalaji/cinespin/actions/workflows/test.yml)
 
 **Tired of endless scrolling? CineSpin helps you discover your next favorite movie or TV show with a fun, retro twist!**
 
