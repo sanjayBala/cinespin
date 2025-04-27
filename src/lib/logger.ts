@@ -4,16 +4,19 @@
 // Define log level interface
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// Define metadata type for logging
+export type LogMeta = Record<string, unknown> | string | number | null | undefined;
+
 // Define logger interface
 export interface Logger {
-  debug(message: string, meta?: any): void;
-  info(message: string, meta?: any): void;
-  warn(message: string, meta?: any): void;
-  error(message: string, meta?: any): void;
+  debug(message: string, meta?: LogMeta): void;
+  info(message: string, meta?: LogMeta): void;
+  warn(message: string, meta?: LogMeta): void;
+  error(message: string, meta?: LogMeta): void;
 }
 
 // Helper to format meta objects for console logging
-const formatMeta = (meta?: any): string => {
+const formatMeta = (meta?: LogMeta): string => {
   if (!meta) return '';
   try {
     return typeof meta === 'object' ? ` ${JSON.stringify(meta)}` : ` ${meta}`;

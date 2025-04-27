@@ -63,7 +63,7 @@ const tmdbClient = axios.create({
 });
 
 // Function to implement retry logic
-const retryAxiosRequest = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+const retryAxiosRequest = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
   try {
     return await fn();
   } catch (error) {
