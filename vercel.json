@@ -4,6 +4,10 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "github": {
+    "enabled": true,
+    "silent": true
+  },
   "headers": [
     {
       "source": "/api/(.*)",

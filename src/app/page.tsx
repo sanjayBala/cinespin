@@ -133,6 +133,12 @@ export default function Home() {
           Discover your next favorite movie or TV show!
         </p>
 
+        <div className="max-w-lg mx-auto bg-[#2a2a2a]/50 border border-[#FF4081] rounded-lg p-4 mb-8 sm:mb-12 text-center shadow-lg">
+          <p className="text-sm sm:text-base text-[#FFD700]">
+            Tired of endless scrolling? CineSpin finds you a random movie or TV show based on your preferences, bringing back the joy of discovery!
+          </p>
+        </div>
+
         <MoviePreferencesForm onSubmit={handleSubmit} initialPreferences={currentPreferences || undefined} />
 
         <footer className="mt-8 sm:mt-12 text-center space-y-4">
@@ -149,7 +155,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center gap-2 text-sm text-[#FFD700]">
             <p className="text-xs opacity-80">
-              This app uses the TMDB API to fetch all movie / tv show data.
+              All Movie & Show Data is from https://www.themoviedb.org
             </p>
           </div>
         </footer>
