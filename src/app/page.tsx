@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, discoverMedia, MediaItem } from '@/lib/tmdb';
-import { FaSpinner, FaArrowLeft, FaHome, FaSearch } from 'react-icons/fa';
+import { FaSpinner, FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import Image from 'next/image';
 
@@ -11,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<MediaItem | null>(null);
   const [currentPreferences, setCurrentPreferences] = useState<MediaPreferencesFilter | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const handleSubmit = async (preferences: MediaPreferencesFilter) => {
     setLoading(true);
@@ -133,10 +134,22 @@ export default function Home() {
           Discover your next favorite movie or TV show!
         </p>
 
-        <div className="max-w-lg mx-auto bg-[#2a2a2a]/50 border border-[#FF4081] rounded-lg p-4 mb-8 sm:mb-12 text-center shadow-lg">
-          <p className="text-sm sm:text-base text-[#FFD700]">
-            Tired of endless scrolling? CineSpin finds you a random movie or TV show based on your preferences, bringing back the joy of discovery!
-          </p>
+        {/* Collapsible Explanation Card */}
+        <div className="max-w-lg mx-auto bg-[#2a2a2a]/50 border border-[#FF4081] rounded-lg mb-8 sm:mb-12 shadow-lg overflow-hidden">
+          <button 
+            onClick={() => setShowExplanation(!showExplanation)}
+            className="w-full flex justify-between items-center p-4 text-left text-[#FFD700] font-righteous focus:outline-none"
+          >
+            <span>🤔 How this works?</span>
+            {showExplanation ? <FaChevronUp /> : <FaChevronDown />}
+          </button>
+          {showExplanation && (
+            <div className="p-4 pt-0">
+              <p className="text-sm sm:text-base text-[#FFD700]">
+                Tired of endless scrolling? CineSpin finds you a random movie or TV show based on your preferences, bringing back the joy of discovery!
+              </p>
+            </div>
+          )}
         </div>
 
         <MoviePreferencesForm onSubmit={handleSubmit} initialPreferences={currentPreferences || undefined} />
