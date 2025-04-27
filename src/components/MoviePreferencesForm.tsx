@@ -92,12 +92,12 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
   const currentGenres = preferences.mediaType === 'movie' ? MOVIE_GENRES : TV_GENRES;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto p-8 bg-[#2a2a2a] rounded-xl shadow-2xl border-2 border-[#FFD700] border-dashed">
-      <div className="flex justify-center gap-4">
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto p-4 sm:p-8 bg-[#2a2a2a] rounded-xl shadow-2xl border-2 border-[#FFD700] border-dashed">
+      <div className="flex flex-col sm:flex-row justify-center gap-4">
         <button
           type="button"
           onClick={() => setPreferences(prev => ({ ...prev, mediaType: 'movie', genres: [] }))}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-righteous text-lg transition-all duration-200 ${
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-righteous text-lg transition-all duration-200 ${
             preferences.mediaType === 'movie'
               ? 'bg-[#FFD700] text-[#1a1a1a]'
               : 'bg-[#3a3a3a] text-[#FFD700] hover:bg-[#4a4a4a]'
@@ -109,7 +109,7 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
         <button
           type="button"
           onClick={() => setPreferences(prev => ({ ...prev, mediaType: 'tv', genres: [] }))}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-righteous text-lg transition-all duration-200 ${
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-righteous text-lg transition-all duration-200 ${
             preferences.mediaType === 'tv'
               ? 'bg-[#FFD700] text-[#1a1a1a]'
               : 'bg-[#3a3a3a] text-[#FFD700] hover:bg-[#4a4a4a]'
@@ -124,7 +124,7 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
         <label className="block text-xl font-righteous text-[#FFD700] mb-4">
           🎭 Pick Your {preferences.mediaType === 'movie' ? 'Movie' : 'TV'} Genres
         </label>
-        <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {currentGenres.map((genre) => (
             <label
               key={genre.id}
@@ -177,11 +177,11 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
         </button>
 
         {showAdvanced && (
-          <div className="mt-6 space-y-6 bg-[#3a3a3a] p-6 rounded-lg border border-[#FFD700]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-6 space-y-6 bg-[#3a3a3a] p-4 sm:p-6 rounded-lg border border-[#FFD700]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-lg font-righteous text-[#FFD700] mb-3">📅 Year Range</label>
-                <div className="flex gap-4 items-center">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   <input
                     type="number"
                     min="1900"
@@ -190,7 +190,7 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
                     onChange={(e) =>
                       setPreferences({ ...preferences, yearStart: parseInt(e.target.value) })
                     }
-                    className="w-full rounded-lg bg-[#2a2a2a] text-white border-2 border-[#FFD700] focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081]"
+                    className="w-full rounded-lg bg-[#2a2a2a] text-white border-2 border-[#FFD700] focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081] px-3 py-2"
                   />
                   <span className="text-[#FF4081]">to</span>
                   <input
@@ -201,7 +201,7 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
                     onChange={(e) =>
                       setPreferences({ ...preferences, yearEnd: parseInt(e.target.value) })
                     }
-                    className="w-full rounded-lg bg-[#2a2a2a] text-white border-2 border-[#FFD700] focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081]"
+                    className="w-full rounded-lg bg-[#2a2a2a] text-white border-2 border-[#FFD700] focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081] px-3 py-2"
                   />
                 </div>
               </div>
