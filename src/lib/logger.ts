@@ -18,10 +18,10 @@ const logger = typeof window === 'undefined'
       ],
     })
   : {
-      info: (...args: any[]) => console.log(...args),
-      error: (...args: any[]) => console.error(...args),
-      warn: (...args: any[]) => console.warn(...args),
-      debug: (...args: any[]) => console.debug(...args),
+      info: (...args: unknown[]) => console.log(...args),
+      error: (...args: unknown[]) => console.error(...args),
+      warn: (...args: unknown[]) => console.warn(...args),
+      debug: (...args: unknown[]) => console.debug(...args),
     };
 
 // Add request logging middleware (server-side only)

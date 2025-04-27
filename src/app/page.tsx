@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
-import { MediaPreferencesFilter, discoverMedia, MediaItem } from '@/lib/tmdb';
+import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
 import { FaSpinner, FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
-import Image from 'next/image';
 
 export default function Home() {
   const [loading, setLoading] = useState(false);

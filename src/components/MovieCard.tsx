@@ -4,6 +4,7 @@ import { MediaItem } from '@/lib/tmdb';
 import { getImageUrl } from '@/lib/tmdb';
 import { useState } from 'react';
 import { FaHeart, FaRegHeart, FaCheck, FaStar } from 'react-icons/fa';
+import Image from 'next/image';
 
 interface Props {
   movie: MediaItem;
@@ -32,10 +33,13 @@ export default function MovieCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative aspect-[2/3]">
-        <img
+        <Image
           src={getImageUrl(movie.poster_path)}
-          alt={title}
-          className="w-full h-full object-cover"
+          alt={title || 'Movie Poster'}
+          fill
+          style={{ objectFit: 'cover' }}
+          sizes="(max-width: 640px) 100vw, 350px"
+          priority={true}
         />
         {isHovered && (
           <div className="absolute inset-0 bg-black bg-opacity-90 p-3 sm:p-4 text-white overflow-y-auto">
