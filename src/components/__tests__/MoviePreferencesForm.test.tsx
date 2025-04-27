@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import MoviePreferencesForm from '../MoviePreferencesForm';
 
 describe('MoviePreferencesForm', () => {
@@ -40,7 +41,8 @@ describe('MoviePreferencesForm', () => {
     fireEvent.click(screen.getByText('Action'));
     
     // Submit the form
-    fireEvent.click(screen.getByText(/Pick Your Movie/));
+    const submitButton = screen.getByRole('button', { name: /Pick Your Movie/i });
+    fireEvent.click(submitButton);
     
     expect(mockOnSubmit).toHaveBeenCalledWith(
       expect.objectContaining({

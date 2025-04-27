@@ -113,7 +113,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col items-center gap-2 text-sm text-[#FFD700]">
               <p className="text-xs opacity-80">
-                This app uses the TMDB API but is not endorsed or certified by TMDB.
+                All Movie & Show Data is from https://www.themoviedb.org
               </p>
             </div>
           </footer>
@@ -149,7 +149,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center gap-2 text-sm text-[#FFD700]">
             <p className="text-xs opacity-80">
-              This product uses the TMDB API to fetch all movie / tv show data.
+              This app uses the TMDB API to fetch all movie / tv show data.
             </p>
           </div>
         </footer>
