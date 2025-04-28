@@ -19,6 +19,10 @@ CineSpin offers a unique, cinema-inspired interface to find random film or TV re
 *   **Powered by TMDb:** Utilizes the extensive [The Movie Database (TMDb)](https://www.themoviedb.org/documentation/api) API for accurate and up-to-date information.
 *   **Responsive Design:** Fully functional and great-looking on desktops, tablets, and mobile devices.
 *   **Mobile-Friendly:** Touch-optimized controls and layouts for a smooth mobile experience.
+*   **Share Functionality:** Share your movie and TV show discoveries with friends directly from the app.
+*   **No Results Guidance:** Helpful feedback when no matches are found for your criteria.
+*   **Duplicate Prevention:** Automatic retry when "Search Again" returns the same movie or show.
+*   **Optimized Images:** Fast-loading movie posters with Next.js image optimization.
 
 ## 🚀 Getting Started
 
