@@ -100,7 +100,7 @@ export default function Home() {
             </h2>
 
             <div className="max-w-[280px] sm:max-w-[350px] mx-auto">
-              <MovieCard movie={recommendation} />
+              <MovieCard key={recommendation.id} movie={recommendation} />
             </div>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
