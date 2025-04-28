@@ -46,7 +46,10 @@ export async function POST(request: Request) {
     });
 
     reqLogger.end(200);
-    return NextResponse.json(recommendation);
+    return NextResponse.json({
+      movie: recommendation,
+      totalCount: media.length
+    });
   } catch (error) {
     logger.error('Error in recommendations API:', {
       error: error instanceof Error ? error.message : 'Unknown error',

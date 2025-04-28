@@ -34,6 +34,7 @@ export interface MediaPreferencesFilter {
   maxRating?: number;
   minPopularity?: number;
   includeAdult?: boolean;
+  excludeIds?: number[];
 }
 
 interface TMDbResponse {
@@ -172,7 +173,7 @@ export async function discoverMedia(
 
   // Limit pages to fetch to reduce load
   const pagesToFetch = Math.min(PAGES_TO_FETCH, totalAvailablePages - startPage + 1, 5);
-  const allItems: MediaItem[] = [];
+  let allItems: MediaItem[] = [];
 
   // Start with initial response data
   allItems.push(...initialResponse.data.results);
@@ -228,6 +229,29 @@ export async function discoverMedia(
   // If we have at least one result, return it even if we couldn't fetch everything
   if (allItems.length === 0) {
     throw new Error('No movies found matching your criteria');
+  }
+
+  // Filter out excluded movie IDs before shuffling
+  if (preferences.excludeIds && preferences.excludeIds.length > 0) {
+    const excludeSet = new Set(preferences.excludeIds);
+    const filteredItems = allItems.filter(item => !excludeSet.has(item.id));
+    
+    // If filtering leaves us with no results, return the original list
+    // This ensures user still gets recommendations even if they've seen all matching movies
+    if (filteredItems.length === 0) {
+      logger.info('All results were in exclude list - using original list', {
+        excludeCount: preferences.excludeIds.length,
+        originalCount: allItems.length
+      });
+    } else {
+      // Replace allItems with filtered list if we have results
+      allItems = filteredItems;
+      logger.info('Filtered excluded movie IDs', {
+        beforeCount: allItems.length + preferences.excludeIds.length,
+        afterCount: allItems.length,
+        excludeCount: preferences.excludeIds.length
+      });
+    }
   }
 
   // Shuffle the items array for better randomization

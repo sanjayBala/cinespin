@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
-import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_RETRIES = 3; // Limit retries for fetching a different recommendation
+const MAX_HISTORY_SIZE = 100; // Limit the number of movies we store in history
+
+// Define the API response type
+interface RecommendationResponse {
+  movie: MediaItem;
+  totalCount: number;
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -16,18 +23,55 @@ export default function Home() {
   const [currentPreferences, setCurrentPreferences] = useState<MediaPreferencesFilter | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
+  const [viewedMovies, setViewedMovies] = useState<number[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+
+  // Load viewed movies from localStorage on component mount
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('cinespin_viewed_movies');
+    if (storedHistory) {
+      try {
+        setViewedMovies(JSON.parse(storedHistory));
+      } catch (e) {
+        console.error('Error parsing viewed movies history:', e);
+        // Reset if corrupted
+        localStorage.setItem('cinespin_viewed_movies', JSON.stringify([]));
+      }
+    }
+  }, []);
+
+  // Update localStorage when viewedMovies changes
+  useEffect(() => {
+    if (viewedMovies.length > 0) {
+      localStorage.setItem('cinespin_viewed_movies', JSON.stringify(viewedMovies));
+    }
+  }, [viewedMovies]);
+
+  // Add movie to viewed history
+  const addToViewedHistory = (movieId: number) => {
+    setViewedMovies(prev => {
+      // Skip if already in history
+      if (prev.includes(movieId)) return prev;
+      
+      // Add to beginning of array for recency (newest first)
+      const updated = [movieId, ...prev];
+      
+      // Keep history size manageable
+      return updated.slice(0, MAX_HISTORY_SIZE);
+    });
+  };
 
   const handleSubmit = async (
-    preferences: MediaPreferencesFilter, 
-    showLoading = true, 
-    isSearchAgain = false, 
+    preferences: MediaPreferencesFilter,
+    showLoading = true,
+    isSearchAgain = false,
     retryCount = 0 // Initialize retry count
   ) => {
     if (showLoading) {
       setLoading(true);
     }
     if (!isSearchAgain || retryCount === 0) {
-        setNoResultsFound(false);
+      setNoResultsFound(false);
     }
 
     if (!isSearchAgain) {
@@ -35,15 +79,22 @@ export default function Home() {
     }
 
     setCurrentPreferences(preferences);
-    let result: MediaItem | null = null; // Declare result outside the try block
+    let movieResult: MediaItem | null = null;
+    let totalMoviesFound = 0;
 
     try {
+      // Add viewedMovies to the request payload
+      const requestPayload = {
+        ...preferences,
+        excludeIds: viewedMovies
+      };
+
       const response = await fetch('/api/recommendations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(preferences),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
@@ -51,19 +102,29 @@ export default function Home() {
         throw new Error(`Failed to fetch recommendations (${response.status})`);
       }
 
-      result = await response.json(); // Assign to the outer scope variable
+      const apiResponse = await response.json() as RecommendationResponse; 
 
-      if (result && recommendation && result.id === recommendation.id && retryCount < MAX_RETRIES) {
-        console.log(`Duplicate found (ID: ${result.id}), retrying... Attempt: ${retryCount + 1}`);
+      // Extract movie and count from the response
+      movieResult = apiResponse.movie;
+      totalMoviesFound = apiResponse.totalCount;
+
+      // Check for duplicates and retry if necessary
+      if (movieResult && recommendation && movieResult.id === recommendation.id && retryCount < MAX_RETRIES) {
+        console.log(`Duplicate found (ID: ${movieResult.id}), retrying... Attempt: ${retryCount + 1}`);
         await handleSearchAgain(retryCount + 1);
         return;
       }
 
-      if (!result) {
+      // If not a duplicate or retries exhausted, update state
+      if (!movieResult) {
         setRecommendation(null);
+        setTotalCount(0);
         setNoResultsFound(true);
       } else {
-        setRecommendation(result);
+        // Add the movie to viewed history
+        addToViewedHistory(movieResult.id);
+        setRecommendation(movieResult);
+        setTotalCount(totalMoviesFound);
         setNoResultsFound(false);
       }
 
@@ -71,11 +132,14 @@ export default function Home() {
       console.error('Error fetching recommendations:', error);
       setRecommendation(null);
       setNoResultsFound(true);
+      setTotalCount(0);
     } finally {
+      // Only stop top-level loading indicator
       if (showLoading) {
          setLoading(false);
       }
-      if (isSearchAgain && !(recommendation && result && result.id === recommendation.id && retryCount < MAX_RETRIES)) {
+      // Only stop the search again spinner if it's the final attempt (not a retry)
+      if (isSearchAgain && !(recommendation && movieResult && movieResult.id === recommendation.id && retryCount < MAX_RETRIES)) {
         setSearchingAgain(false);
       }
     }
@@ -100,6 +164,13 @@ export default function Home() {
     setNoResultsFound(false);
   };
 
+  // Allow users to clear their movie history
+  const handleClearHistory = () => {
+    setViewedMovies([]);
+    localStorage.removeItem('cinespin_viewed_movies');
+    alert('Your movie history has been cleared.');
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -122,6 +193,14 @@ export default function Home() {
               🎬 Your Recommended {recommendation.title ? 'Movie' : 'TV Show'}
             </h2>
 
+            {/* Add message for single result */}
+            {totalCount === 1 && (
+              <div className="max-w-lg mx-auto mb-6 p-3 bg-[#3a3a3a] border border-[#FFD700] rounded-lg text-center text-[#FFD700] flex items-center justify-center gap-2 shadow-md">
+                <FaInfoCircle className="text-[#FFD700]" />
+                <span>Unfortunately, this is the only result matching your criteria. Adjust the filters to find more options!</span>
+              </div>
+            )}
+
             <div className="max-w-[280px] sm:max-w-[350px] mx-auto">
               <MovieCard key={recommendation.id} movie={recommendation} />
             </div>
@@ -129,7 +208,7 @@ export default function Home() {
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
               <button
                 onClick={handleSearchAgainClick}
-                disabled={searchingAgain}
+                disabled={searchingAgain || totalCount === 1}
                 className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-80 disabled:hover:bg-[#FF4081] disabled:hover:scale-100"
               >
                 <FaSearch />
@@ -143,6 +222,29 @@ export default function Home() {
                 <span>Home</span>
               </button>
             </div>
+            
+            {/* Display viewed movie count and clear history button if there are viewed movies */}
+            {viewedMovies.length > 0 && (
+              <div className="mt-6 sm:mt-8 max-w-md mx-auto bg-[#2a2a2a] border border-[#FFD700]/50 rounded-lg p-4 shadow-lg">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  {/* <div className="h-8 w-8 bg-[#FFD700] rounded-full flex items-center justify-center text-[#1a1a1a] font-bold">
+                    {viewedMovies.length}
+                  </div> */}
+                  <div className="text-[#FFD700] font-medium">
+                  {viewedMovies.length} Movie{viewedMovies.length !== 1 ? 's' : ''} viewed in this session
+                  </div>
+                </div>
+                <div className="flex justify-center mt-3">
+                  <button
+                    onClick={handleClearHistory}
+                    className="px-4 py-1 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-[#FF4081] rounded-full transition-colors duration-200 text-sm flex items-center gap-1.5"
+                  >
+                    {/* <FaExclamationCircle className="w-3 h-3" /> */}
+                    <span>Clear history</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <footer className="mt-8 sm:mt-12 text-center space-y-4">
               <p className="text-[#FFD700]">
