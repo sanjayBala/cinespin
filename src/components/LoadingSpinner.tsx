@@ -24,7 +24,7 @@ export default function LoadingSpinner({ size = 'full' }: LoadingSpinnerProps) {
           <p className={`${
             isSmall ? 'text-xl' : isMedium ? 'text-xl' : 'text-2xl'
           } font-righteous text-[#FFD700] animate-pulse`}>
-            🎬 Searching the multiverse...
+            🎬 Searching the film universe...
           </p>
           <p className={`${
             isSmall ? 'text-base' : isMedium ? 'text-base' : 'text-lg'

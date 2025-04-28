@@ -335,7 +335,7 @@ export default function Home() {
 
             <footer className="mt-8 sm:mt-12 text-center space-y-4">
               <p className="text-[#FFD700]">
-                Created by{' '}
+                Built by {' '}
                 <a
                   href="https://sanjaybalaji.dev"
                   target="_blank"
@@ -396,7 +396,7 @@ export default function Home() {
 
         <footer className="mt-8 sm:mt-12 text-center space-y-4">
           <p className="text-[#FFD700]">
-            Created by{' '}
+            Built by {' '}
             <a
               href="https://sanjaybalaji.dev"
               target="_blank"
