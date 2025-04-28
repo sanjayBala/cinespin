@@ -3,12 +3,18 @@
 import { useState, useEffect } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
-import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle, FaInfoCircle, FaTimes, FaTrash } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_RETRIES = 3; // Limit retries for fetching a different recommendation
 const MAX_HISTORY_SIZE = 100; // Limit the number of movies we store in history
+
+// Define interface for history items that includes media type
+interface ViewedItem {
+  id: number;
+  type: 'movie' | 'tv';
+}
 
 // Define the API response type
 interface RecommendationResponse {
@@ -23,38 +29,46 @@ export default function Home() {
   const [currentPreferences, setCurrentPreferences] = useState<MediaPreferencesFilter | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
-  const [viewedMovies, setViewedMovies] = useState<number[]>([]);
+  const [viewedItems, setViewedItems] = useState<ViewedItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [showClearHistoryPopup, setShowClearHistoryPopup] = useState(false);
+  const [showClearHistorySuccess, setShowClearHistorySuccess] = useState(false);
 
-  // Load viewed movies from localStorage on component mount
+  // Load viewed items from localStorage on component mount
   useEffect(() => {
-    const storedHistory = localStorage.getItem('cinespin_viewed_movies');
+    const storedHistory = localStorage.getItem('cinespin_viewed_items');
     if (storedHistory) {
       try {
-        setViewedMovies(JSON.parse(storedHistory));
+        setViewedItems(JSON.parse(storedHistory));
       } catch (e) {
-        console.error('Error parsing viewed movies history:', e);
+        console.error('Error parsing viewed history:', e);
         // Reset if corrupted
-        localStorage.setItem('cinespin_viewed_movies', JSON.stringify([]));
+        localStorage.setItem('cinespin_viewed_items', JSON.stringify([]));
       }
     }
   }, []);
 
-  // Update localStorage when viewedMovies changes
+  // Update localStorage when viewedItems changes
   useEffect(() => {
-    if (viewedMovies.length > 0) {
-      localStorage.setItem('cinespin_viewed_movies', JSON.stringify(viewedMovies));
+    if (viewedItems.length > 0) {
+      localStorage.setItem('cinespin_viewed_items', JSON.stringify(viewedItems));
     }
-  }, [viewedMovies]);
+  }, [viewedItems]);
 
-  // Add movie to viewed history
-  const addToViewedHistory = (movieId: number) => {
-    setViewedMovies(prev => {
+  // Add item to viewed history with media type
+  const addToViewedHistory = (id: number, isMovie: boolean) => {
+    setViewedItems(prev => {
       // Skip if already in history
-      if (prev.includes(movieId)) return prev;
+      if (prev.some(item => item.id === id)) return prev;
+      
+      // Create new item with correct type
+      const newItem: ViewedItem = { 
+        id, 
+        type: isMovie ? 'movie' : 'tv' 
+      };
       
       // Add to beginning of array for recency (newest first)
-      const updated = [movieId, ...prev];
+      const updated: ViewedItem[] = [newItem, ...prev];
       
       // Keep history size manageable
       return updated.slice(0, MAX_HISTORY_SIZE);
@@ -83,10 +97,10 @@ export default function Home() {
     let totalMoviesFound = 0;
 
     try {
-      // Add viewedMovies to the request payload
+      // Add viewedItems to the request payload
       const requestPayload = {
         ...preferences,
-        excludeIds: viewedMovies
+        excludeIds: viewedItems.map(item => item.id)
       };
 
       const response = await fetch('/api/recommendations', {
@@ -122,7 +136,8 @@ export default function Home() {
         setNoResultsFound(true);
       } else {
         // Add the movie to viewed history
-        addToViewedHistory(movieResult.id);
+        const isMovie = !!movieResult.title; // If it has a title, it's a movie, otherwise it's a TV show
+        addToViewedHistory(movieResult.id, isMovie);
         setRecommendation(movieResult);
         setTotalCount(totalMoviesFound);
         setNoResultsFound(false);
@@ -164,11 +179,39 @@ export default function Home() {
     setNoResultsFound(false);
   };
 
-  // Allow users to clear their movie history
+  // Updated to show confirmation popup instead of immediate clearing
   const handleClearHistory = () => {
-    setViewedMovies([]);
-    localStorage.removeItem('cinespin_viewed_movies');
-    alert('Your movie history has been cleared.');
+    setShowClearHistoryPopup(true);
+  };
+
+  // Function to actually clear history after confirmation
+  const confirmClearHistory = () => {
+    setViewedItems([]);
+    localStorage.removeItem('cinespin_viewed_items');
+    setShowClearHistoryPopup(false);
+    setShowClearHistorySuccess(true);
+    
+    // Auto-hide success message after 3 seconds
+    setTimeout(() => {
+      setShowClearHistorySuccess(false);
+    }, 3000);
+  };
+
+  // This function returns the appropriate text based on viewed history
+  const getViewedHistoryText = () => {
+    if (viewedItems.length === 0) return "";
+    
+    // Count movies and TV shows
+    const movieCount = viewedItems.filter(item => item.type === 'movie').length;
+    const tvCount = viewedItems.filter(item => item.type === 'tv').length;
+    
+    if (movieCount > 0 && tvCount === 0) {
+      return `${viewedItems.length} Movie${viewedItems.length !== 1 ? 's' : ''} viewed so far`;
+    } else if (movieCount === 0 && tvCount > 0) {
+      return `${viewedItems.length} TV Show${viewedItems.length !== 1 ? 's' : ''} viewed so far`;
+    } else {
+      return `${viewedItems.length} Titles viewed so far (${movieCount} Movies, ${tvCount} TV Shows)`;
+    }
   };
 
   if (loading) {
@@ -179,6 +222,54 @@ export default function Home() {
     return (
       <>
         {searchingAgain && <LoadingSpinner size="full" />}
+        
+        {/* Clear History Confirmation Popup */}
+        {showClearHistoryPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#2a2a2a] rounded-xl border-2 border-[#FFD700] p-6 max-w-sm w-full shadow-2xl animate-fade-in">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-righteous text-[#FFD700]">Clear History?</h3>
+                <button 
+                  onClick={() => setShowClearHistoryPopup(false)}
+                  className="text-[#FFD700] hover:text-[#FF4081] transition-colors"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              
+              <p className="text-white mb-6">
+                This will remove all {viewedItems.length} items from your viewing history. You might start seeing these recommendations again.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setShowClearHistoryPopup(false)}
+                  className="px-4 py-2 bg-[#3a3a3a] text-white rounded-lg hover:bg-[#4a4a4a] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmClearHistory}
+                  className="px-4 py-2 bg-[#FF4081] text-white rounded-lg hover:bg-[#F50057] transition-colors flex items-center gap-2"
+                >
+                  <FaTrash size={14} />
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Success Message */}
+        {showClearHistorySuccess && (
+          <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
+            <div className="bg-[#2a2a2a] text-[#FFD700] px-4 py-3 rounded-full shadow-lg border border-[#FFD700] flex items-center gap-2 animate-fade-in">
+              <FaInfoCircle />
+              <span>Your viewing history has been cleared!</span>
+            </div>
+          </div>
+        )}
+        
         <main className="min-h-screen bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] py-8 sm:py-12 px-4">
           <div className="max-w-4xl mx-auto">
             <button
@@ -223,15 +314,12 @@ export default function Home() {
               </button>
             </div>
             
-            {/* Display viewed movie count and clear history button if there are viewed movies */}
-            {viewedMovies.length > 0 && (
+            {/* Display viewed items count and clear history button if there are viewed items */}
+            {viewedItems.length > 0 && (
               <div className="mt-6 sm:mt-8 max-w-md mx-auto bg-[#2a2a2a] border border-[#FFD700]/50 rounded-lg p-4 shadow-lg">
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  {/* <div className="h-8 w-8 bg-[#FFD700] rounded-full flex items-center justify-center text-[#1a1a1a] font-bold">
-                    {viewedMovies.length}
-                  </div> */}
                   <div className="text-[#FFD700] font-medium">
-                  {viewedMovies.length} Movie{viewedMovies.length !== 1 ? 's' : ''} viewed in this session
+                    {getViewedHistoryText()}
                   </div>
                 </div>
                 <div className="flex justify-center mt-3">
@@ -239,7 +327,6 @@ export default function Home() {
                     onClick={handleClearHistory}
                     className="px-4 py-1 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-[#FF4081] rounded-full transition-colors duration-200 text-sm flex items-center gap-1.5"
                   >
-                    {/* <FaExclamationCircle className="w-3 h-3" /> */}
                     <span>Clear history</span>
                   </button>
                 </div>
