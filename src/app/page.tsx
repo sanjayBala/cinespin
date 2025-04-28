@@ -373,7 +373,7 @@ export default function Home() {
             onClick={() => setShowExplanation(!showExplanation)}
             className="w-full flex justify-between items-center p-4 text-left text-[#FFD700] font-righteous focus:outline-none"
           >
-            <span>🤔 How this works?</span>
+            <span>🤔 How to use?</span>
             {showExplanation ? <FaChevronUp /> : <FaChevronDown />}
           </button>
           {showExplanation && (
