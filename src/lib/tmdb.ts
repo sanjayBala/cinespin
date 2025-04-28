@@ -121,150 +121,160 @@ tmdbClient.interceptors.response.use(
   }
 );
 
-export async function discoverMedia(
-  preferences: MediaPreferencesFilter,
-  onProgress?: (progress: FetchProgress) => void,
-  pageOffset?: number
-): Promise<{ media: MediaItem[]; totalResults: number; currentPage: number }> {
-  const currentYear = new Date().getFullYear();
-  const ITEMS_PER_PAGE = 20; // TMDb's fixed page size
-  const DESIRED_ITEM_COUNT = 64; // Reduced from 100 to limit API pressure
-  const PAGES_TO_FETCH = Math.ceil(DESIRED_ITEM_COUNT / ITEMS_PER_PAGE);
+// Import any necessary functions from your cacheManager
+const CACHE_EXPIRY_KEY = 'cinespin_cache_expiry';
+
+/**
+ * Discover movies or TV shows based on user preferences
+ */
+export async function discoverMedia(preferences: MediaPreferencesFilter): Promise<{ media: MediaItem[], totalResults: number }> {
+  // Check if cache is expired
+  const shouldBypassCache = checkCacheExpiry();
   
-  // Reduce minimum vote count for less common languages
-  // This helps get more diverse results for languages with fewer movies
-  let voteCountMin = 50; // default
-  const lessCommonLanguages = ['mr', 'ml', 'kn', 'gu', 'pa', 'te', 'bn'];
-  if (preferences.language && lessCommonLanguages.includes(preferences.language)) {
-    voteCountMin = 10; // Much lower for regional languages
-  }
-  
-  // First, get the total number of pages available with retry logic
-  const initialResponse = await retryAxiosRequest(() => 
-    tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
-      params: {
-        with_genres: preferences.genres?.join(','),
-        [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.gte`]: 
-          preferences.yearStart ? `${preferences.yearStart}-01-01` : '1900-01-01',
-        [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.lte`]: 
-          preferences.yearEnd ? `${preferences.yearEnd}-12-31` : `${currentYear}-12-31`,
-        'vote_average.gte': preferences.minRating || 0,
-        'vote_average.lte': preferences.maxRating || 10,
-        'with_original_language': preferences.language,
-        'vote_count.gte': voteCountMin,
-        'popularity.gte': preferences.minPopularity || 0,
-        sort_by: 'popularity.desc',
-        include_adult: preferences.includeAdult || false,
-        page: 1
-      },
-    }),
-    5,  // Increased retries for initial request
-    1500 // Longer initial delay
-  );
-
-  const totalAvailablePages = initialResponse.data.total_pages;
-  
-  let startPage = 1;
-  if (pageOffset) {
-    startPage = pageOffset;
-  } else if (totalAvailablePages > PAGES_TO_FETCH) {
-    startPage = Math.floor(Math.random() * (totalAvailablePages - PAGES_TO_FETCH + 1)) + 1;
-  }
-
-  // Limit pages to fetch to reduce load
-  const pagesToFetch = Math.min(PAGES_TO_FETCH, totalAvailablePages - startPage + 1, 5);
-  let allItems: MediaItem[] = [];
-
-  // Start with initial response data
-  allItems.push(...initialResponse.data.results);
-
-  // Sequential fetching with limited concurrency
-  for (let i = 0; i < pagesToFetch - 1; i++) {
-    try {
-      const response = await retryAxiosRequest(() => 
-        tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
-          params: {
-            with_genres: preferences.genres?.join(','),
-            [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.gte`]: 
-              preferences.yearStart ? `${preferences.yearStart}-01-01` : '1900-01-01',
-            [`${preferences.mediaType === 'movie' ? 'primary_release_date' : 'first_air_date'}.lte`]: 
-              preferences.yearEnd ? `${preferences.yearEnd}-12-31` : `${currentYear}-12-31`,
-            'vote_average.gte': preferences.minRating || 0,
-            'vote_average.lte': preferences.maxRating || 10,
-            'with_original_language': preferences.language,
-            'vote_count.gte': voteCountMin,
-            'popularity.gte': preferences.minPopularity || 0,
-            sort_by: 'popularity.desc',
-            include_adult: preferences.includeAdult || false,
-            page: startPage + i + 1
-          },
-        }),
-        4,   // Increase retries for subsequent requests
-        1200  // Increased delay
-      );
-      
-      allItems.push(...response.data.results);
-      
-      if (onProgress) {
-        onProgress({
-          currentPage: i + 2,
-          totalPages: pagesToFetch,
-          totalMovies: initialResponse.data.total_results,
-          moviesLoaded: allItems.length
-        });
-      }
-      
-      // Increased delay between requests to avoid overloading the API and reduce connection resets
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-      // If we've got some items already, we can proceed despite the error
-      if (allItems.length > 0) {
-        logger.warn('Error fetching additional pages, but continuing with available results', { error });
-        break;
-      }
-      throw error;
-    }
-  }
-
-  // If we have at least one result, return it even if we couldn't fetch everything
-  if (allItems.length === 0) {
-    throw new Error('No movies found matching your criteria');
-  }
-
-  // Filter out excluded movie IDs before shuffling
-  if (preferences.excludeIds && preferences.excludeIds.length > 0) {
-    const excludeSet = new Set(preferences.excludeIds);
-    const filteredItems = allItems.filter(item => !excludeSet.has(item.id));
+  try {
+    // Destructure preferences
+    const { 
+      mediaType, 
+      genres,
+      yearStart,
+      yearEnd,
+      language,
+      minRating,
+      maxRating,
+      minPopularity,
+      includeAdult,
+      excludeIds
+    } = preferences;
     
-    // If filtering leaves us with no results, return the original list
-    // This ensures user still gets recommendations even if they've seen all matching movies
-    if (filteredItems.length === 0) {
-      logger.info('All results were in exclude list - using original list', {
-        excludeCount: preferences.excludeIds.length,
-        originalCount: allItems.length
-      });
-    } else {
-      // Replace allItems with filtered list if we have results
-      allItems = filteredItems;
-      logger.info('Filtered excluded movie IDs', {
-        beforeCount: allItems.length + preferences.excludeIds.length,
-        afterCount: allItems.length,
-        excludeCount: preferences.excludeIds.length
-      });
+    const endpoint = mediaType === 'movie' ? '/discover/movie' : '/discover/tv';
+    
+    // Assemble request parameters
+    const params: Record<string, string | number | boolean | undefined> = {
+      with_genres: genres?.join(',') || undefined,
+      'vote_average.gte': minRating || undefined,
+      'vote_average.lte': maxRating || undefined,
+      'vote_count.gte': 50, // Ensure some minimum vote count for quality
+      'popularity.gte': minPopularity || undefined,
+      sort_by: 'popularity.desc',
+      include_adult: includeAdult || false,
+      language: language ? `${language}-${language.toUpperCase()}` : 'en-US',
+    };
+    
+    // Add year parameters if provided
+    if (yearStart) {
+      params[mediaType === 'movie' ? 'primary_release_date.gte' : 'first_air_date.gte'] = 
+        `${yearStart}-01-01`;
     }
+    
+    if (yearEnd) {
+      params[mediaType === 'movie' ? 'primary_release_date.lte' : 'first_air_date.lte'] = 
+        `${yearEnd}-12-31`;
+    }
+    
+    // If cache should be bypassed, add a unique cache-busting parameter
+    if (shouldBypassCache) {
+      params._cacheBust = Date.now();
+    }
+    
+    // To get more diversity in results, we'll fetch a larger set of pages
+    // First fetch to get the total number of available results
+    const initialResponse = await retryAxiosRequest(() => 
+      tmdbClient.get<TMDbResponse>(endpoint, { 
+        params: { ...params, page: 1 } 
+      })
+    );
+    
+    const { total_pages, total_results } = initialResponse.data;
+    
+    // If there are multiple pages, try to get results from different pages
+    let allResults: MediaItem[] = [...initialResponse.data.results];
+    
+    if (total_pages > 1) {
+      // Get up to 3 additional pages randomly to increase diversity
+      const pagesToFetch = Math.min(3, total_pages - 1);
+      const additionalPages: number[] = [];
+      
+      // Select random pages (avoiding duplicates)
+      while (additionalPages.length < pagesToFetch) {
+        const randomPage = Math.floor(Math.random() * total_pages) + 1;
+        if (randomPage !== 1 && !additionalPages.includes(randomPage)) {
+          additionalPages.push(randomPage);
+        }
+      }
+      
+      // Fetch additional pages
+      for (const page of additionalPages) {
+        try {
+          const pageResponse = await retryAxiosRequest(() => 
+            tmdbClient.get<TMDbResponse>(endpoint, { 
+              params: { ...params, page } 
+            })
+          );
+          
+          allResults = [...allResults, ...pageResponse.data.results];
+        } catch {
+          // If we fail to get additional pages but have some results, continue
+          logger.warn(`Failed to fetch page ${page}, continuing with available results`);
+        }
+      }
+    }
+    
+    // Filter out excluded IDs if provided
+    let filteredResults = allResults;
+    if (excludeIds && excludeIds.length > 0) {
+      const excludeSet = new Set(excludeIds);
+      filteredResults = allResults.filter(item => !excludeSet.has(item.id));
+      
+      logger.info('Filtered out viewed items', {
+        beforeCount: allResults.length,
+        afterCount: filteredResults.length,
+        excludedCount: allResults.length - filteredResults.length
+      });
+      
+      // If filtering leaves us with no results, use original set
+      // This ensures user still gets recommendations even if they've seen many movies
+      if (filteredResults.length === 0) {
+        logger.info('All results were excluded - using original set for variety');
+        filteredResults = allResults;
+      }
+    }
+    
+    // Reset cache expiry timer after successful fetch
+    setCacheExpiry();
+    
+    return {
+      media: filteredResults,
+      totalResults: total_results
+    };
+  } catch (error) {
+    logger.error('Error in discoverMedia:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      preferences
+    });
+    throw error;
   }
+}
 
-  // Shuffle the items array for better randomization
-  for (let i = allItems.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
-  }
+// Check if the cache has expired
+function checkCacheExpiry(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const expiryTimeStr = localStorage.getItem(CACHE_EXPIRY_KEY);
+  
+  if (!expiryTimeStr) return false;
+  
+  const expiryTime = parseInt(expiryTimeStr, 10);
+  const currentTime = new Date().getTime();
+  
+  return currentTime > expiryTime;
+}
 
-  return {
-    media: allItems,
-    totalResults: initialResponse.data.total_results,
-    currentPage: startPage
-  };
+// Sets a new cache expiry timestamp
+function setCacheExpiry(): void {
+  if (typeof window === 'undefined') return;
+  
+  const expiryTime = new Date().getTime() + (20 * 1000); // 20 seconds
+  localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
 }
 
 export async function getMovieDetails(movieId: number) {

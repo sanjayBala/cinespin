@@ -21,9 +21,14 @@ CineSpin offers a unique, cinema-inspired interface to find random film or TV re
 *   **Mobile-Friendly:** Touch-optimized controls and layouts for a smooth mobile experience.
 *   **Share Functionality:** Share your movie and TV show discoveries with friends directly from the app.
 *   **No Results Guidance:** Helpful feedback when no matches are found for your criteria.
-*   **Duplicate Prevention:** Automatic retry when "Search Again" returns the same movie or show.
+*   **Duplicate Prevention:** Advanced randomization and history tracking ensures you don't see the same recommendations repeatedly, even after extensive use.
+*   **Multi-Page Results:** Automatically fetches from multiple result pages to provide greater diversity in recommendations.
+*   **Enhanced Randomization:** Uses server-side memory to track recently shown items and prioritize fresh content.
 *   **Optimized Images:** Fast-loading movie posters with Next.js image optimization.
-*   **Session Cache Management:** Automatically clears in-memory cache after 15 minutes per session for freshness.
+*   **Cache Management:** Implements a comprehensive caching strategy with:
+    - Next.js 14.2's experimental `staleTimes` to expire server-side cache after 20 seconds
+    - Client-side cache expiration logic using localStorage for consistent cache freshness
+*   **Auto-History Clearing:** Automatically clears viewing history every 5 minutes to ensure fresh recommendations.
 
 ## 🚀 Getting Started
 
@@ -64,7 +69,16 @@ CineSpin is built with modern web technologies:
 *   **Icons:** [React Icons](https://react-icons.github.io/react-icons/)
 *   **Testing:** [Jest](https://jestjs.io/) & [React Testing Library](https://testing-library.com/react)
 *   **Deployment:** [Vercel](https://vercel.com/)
-*   **Cache Management:** Uses Next.js 14.2's experimental `staleTimes` to clear client-side router cache after 15 minutes per session, ensuring fresh data.
+
+## 🧪 Recent Improvements
+
+The latest version of CineSpin includes several enhancements to provide a better user experience:
+
+*   **Rapid Data Refreshing:** Cache is cleared every 20 seconds to ensure fresh content.
+*   **More Diverse Recommendations:** Fetches from multiple API pages and uses advanced selection algorithms.
+*   **Automatic History Reset:** Viewing history is cleared every 5 minutes to prevent repetitive recommendations.
+*   **Advanced Selection Logic:** Smart prioritization of unseen or less recently seen content.
+*   **Server-Side Memory:** Tracks recently shown recommendations to avoid repetition across users.
 
 ## 🧪 Running Tests
 

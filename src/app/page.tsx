@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
 import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle, FaInfoCircle, FaTimes, FaTrash } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useCacheManager } from '@/lib/cacheManager';
 
 const MAX_RETRIES = 3; // Limit retries for fetching a different recommendation
 const MAX_HISTORY_SIZE = 100; // Limit the number of movies we store in history
@@ -23,6 +25,10 @@ interface RecommendationResponse {
 }
 
 export default function Home() {
+  const router = useRouter();
+  // Initialize cache manager hook to handle automatic cache clearing after 20 seconds
+  useCacheManager();
+
   const [loading, setLoading] = useState(false);
   const [searchingAgain, setSearchingAgain] = useState(false);
   const [recommendation, setRecommendation] = useState<MediaItem | null>(null);
@@ -33,6 +39,23 @@ export default function Home() {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [showClearHistoryPopup, setShowClearHistoryPopup] = useState(false);
   const [showClearHistorySuccess, setShowClearHistorySuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("Your viewing history has been cleared!");
+  
+  // Set up automatic history clearing every 5 minutes
+  useEffect(() => {
+    // Create a function to clear the history
+    const clearViewedHistory = () => {
+      setViewedItems([]);
+      localStorage.removeItem('cinespin_viewed_items');
+      console.log('Auto-cleared viewed history (5-minute interval)');
+    };
+    
+    // Set up a timer to clear history every 5 minutes
+    const clearHistoryTimer = setInterval(clearViewedHistory, 5 * 60 * 1000);
+    
+    // Clean up the timer when component unmounts
+    return () => clearInterval(clearHistoryTimer);
+  }, []);
 
   // Load viewed items from localStorage on component mount
   useEffect(() => {
@@ -52,6 +75,7 @@ export default function Home() {
   useEffect(() => {
     if (viewedItems.length > 0) {
       localStorage.setItem('cinespin_viewed_items', JSON.stringify(viewedItems));
+      console.log(`Updated viewed history: ${viewedItems.length} items`);
     }
   }, [viewedItems]);
 
@@ -97,10 +121,13 @@ export default function Home() {
     let totalMoviesFound = 0;
 
     try {
-      // Add viewedItems to the request payload
+      // Add viewedItems to the request payload and log for debugging
+      const excludeIds = viewedItems.map(item => item.id);
+      console.log(`Excluding ${excludeIds.length} previously viewed items from recommendations`);
+      
       const requestPayload = {
         ...preferences,
-        excludeIds: viewedItems.map(item => item.id)
+        excludeIds
       };
 
       const response = await fetch('/api/recommendations', {
@@ -188,6 +215,11 @@ export default function Home() {
   const confirmClearHistory = () => {
     setViewedItems([]);
     localStorage.removeItem('cinespin_viewed_items');
+    
+    // Also refresh the cache when clearing history
+    router.refresh();
+    
+    setSuccessMessage("Your viewing history has been cleared!");
     setShowClearHistoryPopup(false);
     setShowClearHistorySuccess(true);
     
@@ -265,7 +297,7 @@ export default function Home() {
           <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
             <div className="bg-[#2a2a2a] text-[#FFD700] px-4 py-3 rounded-full shadow-lg border border-[#FFD700] flex items-center gap-2 animate-fade-in">
               <FaInfoCircle />
-              <span>Your viewing history has been cleared!</span>
+              <span>{successMessage}</span>
             </div>
           </div>
         )}
