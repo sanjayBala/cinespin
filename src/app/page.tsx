@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
-import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamationCircle } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -13,11 +13,13 @@ export default function Home() {
   const [recommendation, setRecommendation] = useState<MediaItem | null>(null);
   const [currentPreferences, setCurrentPreferences] = useState<MediaPreferencesFilter | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [noResultsFound, setNoResultsFound] = useState(false);
 
   const handleSubmit = async (preferences: MediaPreferencesFilter, showLoading = true, isSearchAgain = false) => {
     if (showLoading) {
       setLoading(true);
     }
+    setNoResultsFound(false);
     
     // Only clear the recommendation if it's not a "Search Again" action
     if (!isSearchAgain) {
@@ -36,14 +38,24 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch recommendations');
+        console.error('API Error:', response.status, await response.text());
+        throw new Error(`Failed to fetch recommendations (${response.status})`);
       }
 
-      const result = await response.json();
-      setRecommendation(result);
+      const result: MediaItem | null = await response.json();
+
+      if (!result) {
+        setRecommendation(null);
+        setNoResultsFound(true);
+      } else {
+        setRecommendation(result);
+        setNoResultsFound(false);
+      }
+
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching recommendations:', error);
       setRecommendation(null);
+      setNoResultsFound(true);
     } finally {
       setLoading(false);
       if (isSearchAgain) {
@@ -62,6 +74,7 @@ export default function Home() {
   const handleGoHome = () => {
     setRecommendation(null);
     setCurrentPreferences(null);
+    setNoResultsFound(false);
   };
 
   if (loading) {
@@ -160,6 +173,14 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Display No Results Message */}
+        {noResultsFound && (
+          <div className="max-w-lg mx-auto mb-8 p-4 bg-[#4a4a4a] border border-[#FF4081] rounded-lg text-center text-[#FFD700] flex items-center justify-center gap-2 shadow-md">
+             <FaExclamationCircle className="text-[#FF4081]" />
+            <span>No movies/shows found matching your criteria. Please adjust the filters and try again!</span>
+          </div>
+        )}
 
         <MoviePreferencesForm onSubmit={handleSubmit} initialPreferences={currentPreferences || undefined} />
 

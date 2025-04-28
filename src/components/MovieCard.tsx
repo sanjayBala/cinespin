@@ -3,7 +3,7 @@
 import { MediaItem } from '@/lib/tmdb';
 import { getImageUrl } from '@/lib/tmdb';
 import { useState } from 'react';
-import { FaHeart, FaRegHeart, FaCheck, FaStar } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaCheck, FaStar, FaShareAlt } from 'react-icons/fa';
 import Image from 'next/image';
 
 interface Props {
@@ -24,6 +24,38 @@ export default function MovieCard({
   const [isHovered, setIsHovered] = useState(false);
   const title = movie.title || movie.name;
   const releaseDate = movie.release_date || movie.first_air_date;
+
+  const handleShare = async () => {
+    const mediaType = movie.title ? 'movie' : 'tv';
+    const shareUrl = `https://www.themoviedb.org/${mediaType}/${movie.id}`;
+    const shareTitle = title || 'Check out this recommendation!';
+    const shareText = `${title}${releaseDate ? ` (${new Date(releaseDate).getFullYear()})` : ''} - Recommended by CineSpin!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        console.log('Content shared successfully');
+      } catch (error) {
+        console.error('Error sharing content:', error);
+        // Optionally: Add fallback behavior like copying the link
+        // navigator.clipboard.writeText(shareUrl).then(...)
+        alert('Could not share. Link might be copied if supported, or try manually.');
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Sharing not supported, but link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+        alert('Sharing is not supported on this browser and copying failed.');
+      }
+    }
+  };
 
   return (
     <div
@@ -67,7 +99,7 @@ export default function MovieCard({
             <span className="text-white text-sm sm:text-base">{movie.vote_average.toFixed(1)}</span>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:gap-3">
             {onToggleWatched && (
               <button
                 onClick={(e) => {
@@ -99,6 +131,17 @@ export default function MovieCard({
                 {isFavorite ? <FaHeart className="text-sm sm:text-base" /> : <FaRegHeart className="text-sm sm:text-base" />}
               </button>
             )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+              className="p-1.5 sm:p-2 rounded-full bg-[#3a3a3a] text-[#FF69B4] hover:bg-[#4a4a4a] transition-colors"
+              title="Share this recommendation"
+            >
+              <FaShareAlt className="text-sm sm:text-base" />
+            </button>
           </div>
         </div>
       </div>
