@@ -23,6 +23,7 @@ CineSpin offers a unique, cinema-inspired interface to find random film or TV re
 *   **No Results Guidance:** Helpful feedback when no matches are found for your criteria.
 *   **Duplicate Prevention:** Automatic retry when "Search Again" returns the same movie or show.
 *   **Optimized Images:** Fast-loading movie posters with Next.js image optimization.
+*   **Session Cache Management:** Automatically clears in-memory cache after 15 minutes per session for freshness.
 
 ## 🚀 Getting Started
 
@@ -63,6 +64,7 @@ CineSpin is built with modern web technologies:
 *   **Icons:** [React Icons](https://react-icons.github.io/react-icons/)
 *   **Testing:** [Jest](https://jestjs.io/) & [React Testing Library](https://testing-library.com/react)
 *   **Deployment:** [Vercel](https://vercel.com/)
+*   **Cache Management:** Uses Next.js 14.2's experimental `staleTimes` to clear client-side router cache after 15 minutes per session, ensuring fresh data.
 
 ## 🧪 Running Tests
 
