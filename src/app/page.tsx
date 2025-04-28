@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
-import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaSpinner } from 'react-icons/fa';
+import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -70,71 +70,65 @@ export default function Home() {
 
   if (recommendation) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] py-8 sm:py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={handleGoHome}
-            className="flex items-center gap-2 text-[#FFD700] hover:text-[#FF4081] transition-colors mb-6 sm:mb-8 font-righteous text-base sm:text-lg"
-          >
-            <FaArrowLeft />
-            <span>Back to Home</span>
-          </button>
-          
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-righteous text-center mb-6 sm:mb-8 text-[#FFD700]">
-            🎬 Your Recommended {recommendation.title ? 'Movie' : 'TV Show'}
-          </h2>
-
-          <div className="max-w-[280px] sm:max-w-[350px] mx-auto">
-            <MovieCard movie={recommendation} />
-          </div>
-
-          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <button
-              onClick={handleSearchAgain}
-              disabled={searchingAgain}
-              className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-80 disabled:hover:bg-[#FF4081] disabled:hover:scale-100"
-            >
-              {searchingAgain ? (
-                <>
-                  <FaSpinner className="animate-spin" />
-                  <span>Searching...</span>
-                </>
-              ) : (
-                <>
-                  <FaSearch />
-                  <span>Search Again</span>
-                </>
-              )}
-            </button>
+      <>
+        {searchingAgain && <LoadingSpinner size="full" />}
+        <main className="min-h-screen bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] py-8 sm:py-12 px-4">
+          <div className="max-w-4xl mx-auto">
             <button
               onClick={handleGoHome}
-              className="px-6 sm:px-8 py-3 bg-[#FFD700] text-[#1a1a1a] rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#FFC107] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              className="flex items-center gap-2 text-[#FFD700] hover:text-[#FF4081] transition-colors mb-6 sm:mb-8 font-righteous text-base sm:text-lg"
             >
-              <FaHome />
-              <span>Home</span>
+              <FaArrowLeft />
+              <span>Back to Home</span>
             </button>
-          </div>
+            
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-righteous text-center mb-6 sm:mb-8 text-[#FFD700]">
+              🎬 Your Recommended {recommendation.title ? 'Movie' : 'TV Show'}
+            </h2>
 
-          <footer className="mt-8 sm:mt-12 text-center space-y-4">
-            <p className="text-[#FFD700]">
-              Created by{' '}
-              <a
-                href="https://sanjaybalaji.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-[#FFC107] transition-colors duration-200"
-              >
-                Sanjay Balaji
-              </a>
-            </p>
-            <div className="flex flex-col items-center gap-2 text-sm text-[#FFD700]">
-              <p className="text-xs opacity-80">
-                All Movie & Show Data is from https://www.themoviedb.org
-              </p>
+            <div className="max-w-[280px] sm:max-w-[350px] mx-auto">
+              <MovieCard movie={recommendation} />
             </div>
-          </footer>
-        </div>
-      </main>
+
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
+              <button
+                onClick={handleSearchAgain}
+                disabled={searchingAgain}
+                className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-80 disabled:hover:bg-[#FF4081] disabled:hover:scale-100"
+              >
+                <FaSearch />
+                <span>Search Again</span>
+              </button>
+              <button
+                onClick={handleGoHome}
+                className="px-6 sm:px-8 py-3 bg-[#FFD700] text-[#1a1a1a] rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#FFC107] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <FaHome />
+                <span>Home</span>
+              </button>
+            </div>
+
+            <footer className="mt-8 sm:mt-12 text-center space-y-4">
+              <p className="text-[#FFD700]">
+                Created by{' '}
+                <a
+                  href="https://sanjaybalaji.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-[#FFC107] transition-colors duration-200"
+                >
+                  Sanjay Balaji
+                </a>
+              </p>
+              <div className="flex flex-col items-center gap-2 text-sm text-[#FFD700]">
+                <p className="text-xs opacity-80">
+                  All Movie & Show Data is from https://www.themoviedb.org
+                </p>
+              </div>
+            </footer>
+          </div>
+        </main>
+      </>
     );
   }
 

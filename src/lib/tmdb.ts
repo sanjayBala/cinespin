@@ -127,7 +127,7 @@ export async function discoverMedia(
 ): Promise<{ media: MediaItem[]; totalResults: number; currentPage: number }> {
   const currentYear = new Date().getFullYear();
   const ITEMS_PER_PAGE = 20; // TMDb's fixed page size
-  const DESIRED_ITEM_COUNT = 80; // Reduced from 100 to limit API pressure
+  const DESIRED_ITEM_COUNT = 64; // Reduced from 100 to limit API pressure
   const PAGES_TO_FETCH = Math.ceil(DESIRED_ITEM_COUNT / ITEMS_PER_PAGE);
   
   // Reduce minimum vote count for less common languages
