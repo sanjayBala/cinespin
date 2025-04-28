@@ -7,6 +7,8 @@ import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaExclamatio
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
+const MAX_RETRIES = 3; // Limit retries for fetching a different recommendation
+
 export default function Home() {
   const [loading, setLoading] = useState(false);
   const [searchingAgain, setSearchingAgain] = useState(false);
@@ -15,18 +17,25 @@ export default function Home() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
 
-  const handleSubmit = async (preferences: MediaPreferencesFilter, showLoading = true, isSearchAgain = false) => {
+  const handleSubmit = async (
+    preferences: MediaPreferencesFilter, 
+    showLoading = true, 
+    isSearchAgain = false, 
+    retryCount = 0 // Initialize retry count
+  ) => {
     if (showLoading) {
       setLoading(true);
     }
-    setNoResultsFound(false);
-    
-    // Only clear the recommendation if it's not a "Search Again" action
+    if (!isSearchAgain || retryCount === 0) {
+        setNoResultsFound(false);
+    }
+
     if (!isSearchAgain) {
       setRecommendation(null);
     }
-    
+
     setCurrentPreferences(preferences);
+    let result: MediaItem | null = null; // Declare result outside the try block
 
     try {
       const response = await fetch('/api/recommendations', {
@@ -42,7 +51,13 @@ export default function Home() {
         throw new Error(`Failed to fetch recommendations (${response.status})`);
       }
 
-      const result: MediaItem | null = await response.json();
+      result = await response.json(); // Assign to the outer scope variable
+
+      if (result && recommendation && result.id === recommendation.id && retryCount < MAX_RETRIES) {
+        console.log(`Duplicate found (ID: ${result.id}), retrying... Attempt: ${retryCount + 1}`);
+        await handleSearchAgain(retryCount + 1);
+        return;
+      }
 
       if (!result) {
         setRecommendation(null);
@@ -57,18 +72,26 @@ export default function Home() {
       setRecommendation(null);
       setNoResultsFound(true);
     } finally {
-      setLoading(false);
-      if (isSearchAgain) {
+      if (showLoading) {
+         setLoading(false);
+      }
+      if (isSearchAgain && !(recommendation && result && result.id === recommendation.id && retryCount < MAX_RETRIES)) {
         setSearchingAgain(false);
       }
     }
   };
 
-  const handleSearchAgain = async () => {
+  const handleSearchAgain = async (retryCount = 0) => {
     if (currentPreferences) {
-      setSearchingAgain(true);
-      await handleSubmit(currentPreferences, false, true);
+      if (retryCount === 0) {
+        setSearchingAgain(true);
+      }
+      await handleSubmit(currentPreferences, false, true, retryCount);
     }
+  };
+
+  const handleSearchAgainClick = () => {
+    handleSearchAgain();
   };
 
   const handleGoHome = () => {
@@ -105,7 +128,7 @@ export default function Home() {
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
               <button
-                onClick={handleSearchAgain}
+                onClick={handleSearchAgainClick}
                 disabled={searchingAgain}
                 className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-80 disabled:hover:bg-[#FF4081] disabled:hover:scale-100"
               >
@@ -156,7 +179,6 @@ export default function Home() {
           Discover your next favorite movie or TV show!
         </p>
 
-        {/* Collapsible Explanation Card */}
         <div className="max-w-lg mx-auto bg-[#2a2a2a]/50 border border-[#FF4081] rounded-lg mb-8 sm:mb-12 shadow-lg overflow-hidden">
           <button 
             onClick={() => setShowExplanation(!showExplanation)}
@@ -174,7 +196,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Display No Results Message */}
         {noResultsFound && (
           <div className="max-w-lg mx-auto mb-8 p-4 bg-[#4a4a4a] border border-[#FF4081] rounded-lg text-center text-[#FFD700] flex items-center justify-center gap-2 shadow-md">
              <FaExclamationCircle className="text-[#FF4081]" />
