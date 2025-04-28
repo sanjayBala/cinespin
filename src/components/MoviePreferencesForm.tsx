@@ -70,6 +70,7 @@ interface Props {
 
 export default function MoviePreferencesForm({ onSubmit, initialPreferences }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllGenres, setShowAllGenres] = useState(false);
   const [preferences, setPreferences] = useState<MediaPreferencesFilter>(
     initialPreferences || {
       mediaType: 'movie',
@@ -90,6 +91,7 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
   };
 
   const currentGenres = preferences.mediaType === 'movie' ? MOVIE_GENRES : TV_GENRES;
+  const displayGenres = showAllGenres ? currentGenres : currentGenres.slice(0, 8);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto p-4 sm:p-8 bg-[#2a2a2a] rounded-xl shadow-2xl border-2 border-[#FFD700] border-dashed">
@@ -124,8 +126,8 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
         <label className="block text-xl font-righteous text-[#FFD700] mb-4">
           🎭 Pick Your {preferences.mediaType === 'movie' ? 'Movie' : 'TV'} Genres
         </label>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {currentGenres.map((genre) => (
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {displayGenres.map((genre) => (
             <label
               key={genre.id}
               className={`${
@@ -149,6 +151,15 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
             </label>
           ))}
         </div>
+        {currentGenres.length > 8 && (
+          <button
+            type="button"
+            onClick={() => setShowAllGenres(!showAllGenres)}
+            className="mt-4 w-full py-2 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-[#FFD700] rounded-lg font-medium tracking-wide text-center transition-all duration-200"
+          >
+            {showAllGenres ? '▲ Show Less' : '▼ Show More'}
+          </button>
+        )}
       </div>
 
       <div>

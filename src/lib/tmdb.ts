@@ -130,6 +130,14 @@ export async function discoverMedia(
   const DESIRED_ITEM_COUNT = 80; // Reduced from 100 to limit API pressure
   const PAGES_TO_FETCH = Math.ceil(DESIRED_ITEM_COUNT / ITEMS_PER_PAGE);
   
+  // Reduce minimum vote count for less common languages
+  // This helps get more diverse results for languages with fewer movies
+  let voteCountMin = 50; // default
+  const lessCommonLanguages = ['mr', 'ml', 'kn', 'gu', 'pa', 'te', 'bn'];
+  if (preferences.language && lessCommonLanguages.includes(preferences.language)) {
+    voteCountMin = 10; // Much lower for regional languages
+  }
+  
   // First, get the total number of pages available with retry logic
   const initialResponse = await retryAxiosRequest(() => 
     tmdbClient.get<TMDbResponse>(`/discover/${preferences.mediaType}`, {
@@ -142,7 +150,7 @@ export async function discoverMedia(
         'vote_average.gte': preferences.minRating || 0,
         'vote_average.lte': preferences.maxRating || 10,
         'with_original_language': preferences.language,
-        'vote_count.gte': 50, // Reduced from 100 to increase the pool of options
+        'vote_count.gte': voteCountMin,
         'popularity.gte': preferences.minPopularity || 0,
         sort_by: 'popularity.desc',
         include_adult: preferences.includeAdult || false,
@@ -183,7 +191,7 @@ export async function discoverMedia(
             'vote_average.gte': preferences.minRating || 0,
             'vote_average.lte': preferences.maxRating || 10,
             'with_original_language': preferences.language,
-            'vote_count.gte': 50,
+            'vote_count.gte': voteCountMin,
             'popularity.gte': preferences.minPopularity || 0,
             sort_by: 'popularity.desc',
             include_adult: preferences.includeAdult || false,

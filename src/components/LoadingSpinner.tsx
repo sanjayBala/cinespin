@@ -9,7 +9,7 @@ export default function LoadingSpinner() {
         </div>
         <div className="space-y-2 text-center">
           <p className="text-2xl font-righteous text-[#FFD700] animate-pulse">
-            🎬 Now Showing...
+            🎬 Searching the multiverse...
           </p>
           <p className="text-lg text-[#FF4081]">Finding your perfect feature</p>
         </div>

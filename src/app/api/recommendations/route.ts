@@ -20,14 +20,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Pick a random result from the first page
-    const randomIndex = Math.floor(Math.random() * media.length);
-    const recommendation = media[randomIndex];
+    // Use a more unique randomization for small result sets
+    // This helps avoid recommending the same movie repeatedly
+    let recommendation;
+    
+    if (media.length === 1) {
+      // Only one result, so use it
+      recommendation = media[0];
+    } else if (media.length <= 5) {
+      // For small result sets, use timestamp to vary results
+      const timestamp = new Date().getTime();
+      const index = timestamp % media.length;
+      recommendation = media[index];
+    } else {
+      // For larger result sets, use proper randomization
+      const randomIndex = Math.floor(Math.random() * media.length);
+      recommendation = media[randomIndex];
+    }
 
     logger.info('Recommendation found', {
       movieId: recommendation.id,
       title: recommendation.title || recommendation.name,
-      totalResults
+      totalResults,
+      totalFetched: media.length
     });
 
     reqLogger.end(200);

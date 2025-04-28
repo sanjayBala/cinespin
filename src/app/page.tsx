@@ -3,18 +3,27 @@
 import { useState } from 'react';
 import MoviePreferencesForm from '@/components/MoviePreferencesForm';
 import { MediaPreferencesFilter, MediaItem } from '@/lib/tmdb';
-import { FaSpinner, FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaArrowLeft, FaHome, FaSearch, FaChevronDown, FaChevronUp, FaSpinner } from 'react-icons/fa';
 import MovieCard from '@/components/MovieCard';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+  const [searchingAgain, setSearchingAgain] = useState(false);
   const [recommendation, setRecommendation] = useState<MediaItem | null>(null);
   const [currentPreferences, setCurrentPreferences] = useState<MediaPreferencesFilter | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
-  const handleSubmit = async (preferences: MediaPreferencesFilter) => {
-    setLoading(true);
-    setRecommendation(null);
+  const handleSubmit = async (preferences: MediaPreferencesFilter, showLoading = true, isSearchAgain = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    
+    // Only clear the recommendation if it's not a "Search Again" action
+    if (!isSearchAgain) {
+      setRecommendation(null);
+    }
+    
     setCurrentPreferences(preferences);
 
     try {
@@ -37,12 +46,16 @@ export default function Home() {
       setRecommendation(null);
     } finally {
       setLoading(false);
+      if (isSearchAgain) {
+        setSearchingAgain(false);
+      }
     }
   };
 
   const handleSearchAgain = async () => {
     if (currentPreferences) {
-      await handleSubmit(currentPreferences);
+      setSearchingAgain(true);
+      await handleSubmit(currentPreferences, false, true);
     }
   };
 
@@ -52,14 +65,7 @@ export default function Home() {
   };
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] flex items-center justify-center p-4">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl sm:text-6xl text-[#FFD700] mx-auto mb-4" />
-          <p className="text-[#FFD700] text-lg sm:text-xl font-righteous">Finding the perfect match...</p>
-        </div>
-      </main>
-    );
+    return <LoadingSpinner />;
   }
 
   if (recommendation) {
@@ -85,10 +91,20 @@ export default function Home() {
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-4">
             <button
               onClick={handleSearchAgain}
-              className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              disabled={searchingAgain}
+              className="px-6 sm:px-8 py-3 bg-[#FF4081] text-white rounded-lg font-righteous text-base sm:text-lg tracking-wider hover:bg-[#F50057] transform transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-80 disabled:hover:bg-[#FF4081] disabled:hover:scale-100"
             >
-              <FaSearch />
-              <span>Search Again</span>
+              {searchingAgain ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Searching...</span>
+                </>
+              ) : (
+                <>
+                  <FaSearch />
+                  <span>Search Again</span>
+                </>
+              )}
             </button>
             <button
               onClick={handleGoHome}
@@ -145,7 +161,7 @@ export default function Home() {
           {showExplanation && (
             <div className="p-4 pt-0">
               <p className="text-sm sm:text-base text-[#FFD700]">
-                Tired of endless scrolling? CineSpin finds you a random movie or TV show based on your preferences, bringing back the joy of discovery!
+                Tired of endless searching? CineSpin finds you a random movie or TV show based on your preferences without spoiling you with choices.
               </p>
             </div>
           )}
