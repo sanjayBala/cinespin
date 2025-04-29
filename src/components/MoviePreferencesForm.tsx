@@ -164,23 +164,17 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
 
       <div>
         <label className="block text-xl font-righteous text-[#FFD700] mb-4">🌍 Find Movies in This Language (with English Display)</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <select
+          value={preferences.language}
+          onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+          className="w-full rounded-lg bg-[#3a3a3a] text-white border-2 border-[#FFD700] py-3 px-4 focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081]"
+        >
           {LANGUAGES.map((lang) => (
-            <button
-              key={lang.code}
-              type="button"
-              onClick={() => setPreferences({ ...preferences, language: lang.code })}
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 ${
-                preferences.language === lang.code
-                  ? 'bg-[#FFD700] text-[#1a1a1a] font-bold'
-                  : 'bg-[#3a3a3a] text-white hover:bg-[#4a4a4a]'
-              }`}
-            >
-              <span className="text-xl">{lang.flag}</span>
-              <span>{lang.name}</span>
-            </button>
+            <option key={lang.code} value={lang.code}>
+              {lang.flag} {lang.name}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div className="border-t-2 border-[#FFD700] border-dashed pt-6">
