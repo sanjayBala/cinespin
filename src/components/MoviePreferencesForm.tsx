@@ -44,23 +44,23 @@ const TV_GENRES = [
 ];
 
 const LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'hi', name: 'Hindi' },
-  { code: 'ml', name: 'Malayalam' },
-  { code: 'ta', name: 'Tamil' },
-  { code: 'te', name: 'Telugu' },
-  { code: 'kn', name: 'Kannada' },
-  { code: 'bn', name: 'Bengali' },
-  { code: 'mr', name: 'Marathi' },
-  { code: 'pa', name: 'Punjabi' },
-  { code: 'gu', name: 'Gujarati' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
+  { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', flag: '🇮🇳' },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+  { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
 ];
 
 interface Props {
@@ -163,18 +163,24 @@ export default function MoviePreferencesForm({ onSubmit, initialPreferences }: P
       </div>
 
       <div>
-        <label className="block text-xl font-righteous text-[#FFD700] mb-4">🌍 Select Language</label>
-        <select
-          value={preferences.language}
-          onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-          className="w-full rounded-lg bg-[#3a3a3a] text-white border-2 border-[#FFD700] py-3 px-4 focus:ring-2 focus:ring-[#FF4081] focus:border-[#FF4081]"
-        >
+        <label className="block text-xl font-righteous text-[#FFD700] mb-4">🌍 Find Movies in This Language (with English Display)</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {LANGUAGES.map((lang) => (
-            <option key={lang.code} value={lang.code}>
-              {lang.name}
-            </option>
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => setPreferences({ ...preferences, language: lang.code })}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 ${
+                preferences.language === lang.code
+                  ? 'bg-[#FFD700] text-[#1a1a1a] font-bold'
+                  : 'bg-[#3a3a3a] text-white hover:bg-[#4a4a4a]'
+              }`}
+            >
+              <span className="text-xl">{lang.flag}</span>
+              <span>{lang.name}</span>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <div className="border-t-2 border-[#FFD700] border-dashed pt-6">

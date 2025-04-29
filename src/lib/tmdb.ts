@@ -157,7 +157,8 @@ export async function discoverMedia(preferences: MediaPreferencesFilter): Promis
       'popularity.gte': minPopularity || undefined,
       sort_by: 'popularity.desc',
       include_adult: includeAdult || false,
-      language: language ? `${language}-${language.toUpperCase()}` : 'en-US',
+      language: 'en-US', // Always use English for display language
+      with_original_language: language, // Filter movies by their original language
     };
     
     // Add year parameters if provided
