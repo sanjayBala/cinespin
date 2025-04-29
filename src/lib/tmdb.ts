@@ -153,7 +153,7 @@ export async function discoverMedia(preferences: MediaPreferencesFilter): Promis
       with_genres: genres?.join(',') || undefined,
       'vote_average.gte': minRating || undefined,
       'vote_average.lte': maxRating || undefined,
-      'vote_count.gte': 50, // Ensure some minimum vote count for quality
+      'vote_count.gte': 25, // Ensure some minimum vote count for quality
       'popularity.gte': minPopularity || undefined,
       sort_by: 'popularity.desc',
       include_adult: includeAdult || false,
